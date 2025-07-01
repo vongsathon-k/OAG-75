@@ -13,8 +13,11 @@
     ></div>
 
     <script>
-      const sheetUrl =
+      const originalSheetUrl =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ33n8vRlP0CMLQtvp8ayO0KPKTi6qytFXk1or8m8YaHRIAB_soSL2cX-QxuPx7WqqDiZJzTqsa68vl/pub?gid=0&single=true&output=csv";
+      const sheetUrl =
+        "https://api.allorigins.win/get?url=" +
+        encodeURIComponent(originalSheetUrl);
 
       // Column labels mapping
       const columnLabels = {
@@ -146,8 +149,9 @@
       }
 
       fetch(sheetUrl)
-        .then((res) => res.text())
-        .then((csvText) => {
+        .then((res) => res.json())
+        .then((data) => {
+          const csvText = data.contents;
           console.log("Raw CSV:", csvText);
 
           const rows = parseCSV(csvText);
