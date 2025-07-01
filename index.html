@@ -124,7 +124,12 @@
           img.className = "w-full h-200 object-cover rounded mb-2";
           img.alt = "Image";
 
-          img.onload = function () {};
+          img.onload = function () {
+            console.log(
+              `Image loaded successfully with URL ${currentUrlIndex + 1}:`,
+              urls[currentUrlIndex]
+            );
+          };
 
           img.onerror = function () {
             console.log(
@@ -147,19 +152,26 @@
         .then((res) => res.json())
         .then((data) => {
           const csvText = data.contents;
+          console.log("Raw CSV:", csvText);
 
           const rows = parseCSV(csvText);
+          console.log("Parsed rows:", rows);
 
           const gallery = document.getElementById("gallery");
 
           // Skip header row
           rows.slice(1).forEach((cols, index) => {
+            console.log(`Row ${index}:`, cols);
+
             if (!cols[8]) {
               console.log(`Row ${index}: No data in column 8`);
               return;
             }
 
+            console.log(`Row ${index} - Column 8:`, cols[8]);
+
             const imageId = extractDriveId(cols[8]);
+            console.log("Extracted ID:", imageId);
 
             if (!imageId) {
               console.log(`Row ${index}: Could not extract image ID`);
