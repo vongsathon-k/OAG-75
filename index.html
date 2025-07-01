@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OAG-75</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen p-4 flex flex-col items-center">
+    <h1 class="text-2xl font-bold mb-4">OAG-75</h1>
+    <div
+      id="gallery"
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-6xl"
+    ></div>
+
+    <script>
+      const sheetUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ33n8vRlP0CMLQtvp8ayO0KPKTi6qytFXk1or8m8YaHRIAB_soSL2cX-QxuPx7WqqDiZJzTqsa68vl/pub?gid=0&single=true&output=csv";
+
+      // Column labels mapping
+      const columnLabels = {
+        1: "ลำดับตามคำสั่งที่เข้าฝึกอบรม",
+        2: "ชื่อ-นามสกุล",
+        3: "ตำแหน่ง",
+        4: "หน่วยงาน/สังกัด",
+        5: "จังหวัดที่บรรจุ",
+        6: "เบอร์โทรศัพท์มือถือ",
+        7: "ช่องทางการติดต่อออนไลน์ (facebook/ tiktok/ lineID/ X/ Instagram) *ไม่บังคับกรอกข้อมูลเอาที่สะดวกต้องการให้เพื่อนร่วมรุ่นไว้ติดต่อสื่อสารกัน",
+        9: "หากมีการจัดกิจกรรมอะไรร่วมกัน outing/ นัดเจอ/ นัดเที่ยว/ พูดคุย/ เอารุ่นม่วนจอย คุณจะสะดวกมั้ย",
+        10: "ต้องการให้มีเสื้อรุ่นสีอะไร",
+      };
+
+      // Better CSV parsing function
+      function parseCSV(text) {
+        const rows = [];
+        const lines = text.split("\n");
+
+        for (let line of lines) {
+          if (line.trim() === "") continue;
+
+          const row = [];
+          let current = "";
+          let inQuotes = false;
+
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+              row.push(current.trim());
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          row.push(current.trim());
+          rows.push(row);
+        }
+
+        return rows;
+      }
+
+      // Extract Google Drive ID from various URL formats
+      function extractDriveId(url) {
+        if (!url) return null;
+
+        // Remove quotes and trim
+        url = url.replace(/"/g, "").trim();
+
+        // If it's already just an ID (no slashes or dots)
+        if (!/[\/\.]/.test(url) && url.length > 10) {
+          return url;
+        }
+
+        // Extract from various Google Drive URL formats
+        const patterns = [
+          /\/file\/d\/([a-zA-Z0-9-_]+)/,
+          /id=([a-zA-Z0-9-_]+)/,
+          /\/d\/([a-zA-Z0-9-_]+)/,
+          /open\?id=([a-zA-Z0-9-_]+)/,
+        ];
+
+        for (let pattern of patterns) {
+          const match = url.match(pattern);
+          if (match) return match[1];
+        }
+
+        return url;
+      }
+
+      // Create image element with fallback URLs
+      function createImageWithFallbacks(imageId, container) {
+        const urls = [
+          `https://drive.google.com/uc?export=view&id=${imageId}`,
+          `https://drive.google.com/uc?id=${imageId}`,
+          `https://drive.google.com/thumbnail?id=${imageId}&sz=w400`,
+          `https://lh3.googleusercontent.com/d/${imageId}`,
+        ];
+
+        let currentUrlIndex = 0;
+
+        function tryNextUrl() {
+          if (currentUrlIndex >= urls.length) {
+            // All URLs failed, show error image
+            container.innerHTML = `
+              <div class="w-full h-48 bg-gray-200 rounded flex items-center justify-center">
+                <div class="text-center text-gray-500">
+                  <p class="text-sm">Image not accessible</p>
+                  <p class="text-xs mt-1">ID: ${imageId.substring(0, 12)}...</p>
+                  <button onclick="window.open('https://drive.google.com/file/d/${imageId}/view', '_blank')" 
+                          class="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                    Open in Drive
+                  </button>
+                </div>
+              </div>
+            `;
+            return;
+          }
+
+          const img = document.createElement("img");
+          img.className = "w-full h-200 object-cover rounded mb-2";
+          img.alt = "Image";
+
+          img.onload = function () {
+            console.log(
+              `Image loaded successfully with URL ${currentUrlIndex + 1}:`,
+              urls[currentUrlIndex]
+            );
+          };
+
+          img.onerror = function () {
+            console.log(
+              `URL ${currentUrlIndex + 1} failed:`,
+              urls[currentUrlIndex]
+            );
+            currentUrlIndex++;
+            container.innerHTML = ""; // Clear previous attempt
+            tryNextUrl();
+          };
+
+          img.src = urls[currentUrlIndex];
+          container.appendChild(img);
+        }
+
+        tryNextUrl();
+      }
+
+      fetch(sheetUrl)
+        .then((res) => res.text())
+        .then((csvText) => {
+          console.log("Raw CSV:", csvText);
+
+          const rows = parseCSV(csvText);
+          console.log("Parsed rows:", rows);
+
+          const gallery = document.getElementById("gallery");
+
+          // Skip header row
+          rows.slice(1).forEach((cols, index) => {
+            console.log(`Row ${index}:`, cols);
+
+            if (!cols[8]) {
+              console.log(`Row ${index}: No data in column 8`);
+              return;
+            }
+
+            console.log(`Row ${index} - Column 8:`, cols[8]);
+
+            const imageId = extractDriveId(cols[8]);
+            console.log("Extracted ID:", imageId);
+
+            if (!imageId) {
+              console.log(`Row ${index}: Could not extract image ID`);
+              return;
+            }
+
+            let extraData = "";
+            // Skip column 0 and column 8 (image), display others with Thai labels
+            for (let i = 1; i < cols.length; i++) {
+              if (i !== 8 && cols[i] && cols[i].trim()) {
+                const label = columnLabels[i] || `Column ${i}`;
+                const value = cols[i].replace(/"/g, "").trim();
+                extraData += `<div class="mb-2">
+                  <p class="text-xs text-gray-500 font-medium">${label}</p>
+                  <p class="text-sm text-gray-800">${value}</p>
+                </div>`;
+              }
+            }
+
+            const cardDiv = document.createElement("div");
+            cardDiv.className = "bg-white rounded-xl shadow p-4";
+
+            const imageContainer = document.createElement("div");
+            imageContainer.className = "relative mb-3";
+
+            const extraDataDiv = document.createElement("div");
+            extraDataDiv.innerHTML = extraData;
+
+            cardDiv.appendChild(imageContainer);
+            cardDiv.appendChild(extraDataDiv);
+            gallery.appendChild(cardDiv);
+
+            // Try to load image with multiple fallback URLs
+            createImageWithFallbacks(imageId, imageContainer);
+          });
+        })
+        .catch((err) => {
+          console.error("Error fetching sheet:", err);
+          document.getElementById(
+            "gallery"
+          ).innerHTML = `<div class="col-span-full text-center text-red-500">
+              <p>Error loading images: ${err.message}</p>
+              <p class="text-sm mt-2">Please check the console for more details.</p>
+            </div>`;
+        });
+    </script>
+  </body>
+</html>
