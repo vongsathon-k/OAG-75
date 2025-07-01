@@ -124,11 +124,13 @@
           img.className = "w-full h-200 object-cover rounded mb-2";
           img.alt = "Image";
 
-          img.onload = function () {
-          };
+          img.onload = function () {};
 
           img.onerror = function () {
-            
+            console.log(
+              `URL ${currentUrlIndex + 1} failed:`,
+              urls[currentUrlIndex]
+            );
             currentUrlIndex++;
             container.innerHTML = ""; // Clear previous attempt
             tryNextUrl();
@@ -152,16 +154,15 @@
 
           // Skip header row
           rows.slice(1).forEach((cols, index) => {
-
             if (!cols[8]) {
               console.log(`Row ${index}: No data in column 8`);
               return;
             }
 
-
             const imageId = extractDriveId(cols[8]);
 
             if (!imageId) {
+              console.log(`Row ${index}: Could not extract image ID`);
               return;
             }
 
