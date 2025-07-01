@@ -6,7 +6,30 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-gray-100 min-h-screen p-4 flex flex-col items-center">
-    <h1 class="text-2xl font-bold mb-4">OAG-75</h1>
+    <h1 class="text-2xl font-bold mb-4 text-orange-600">OAG-75</h1>
+
+    <!-- Sort buttons -->
+    <div class="mb-4 flex flex-wrap gap-2 justify-center">
+      <button
+        id="sortByName"
+        class="px-4 py-2 bg-orange-400 hover:bg-orange-500 text-white hover:text-white rounded transition-all text-sm"
+      >
+        เรียงตามชื่อ (ก-ฮ)
+      </button>
+      <button
+        id="sortByOrder"
+        class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-sm"
+      >
+        เรียงตามลำดับเลขที่นั้ง
+      </button>
+      <button
+        id="sortByUpdate"
+        class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-sm"
+      >
+        เรียงตามอัพเดทล่าสุด
+      </button>
+    </div>
+
     <div
       id="gallery"
       class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-6xl"
@@ -24,10 +47,14 @@
         4: "หน่วยงาน/สังกัด",
         5: "จังหวัดที่บรรจุ",
         6: "เบอร์โทรศัพท์มือถือ",
-        7: "ช่องทางการติดต่อออนไลน์ (📘 FB / 🎵 TikTok	/💚 LINE / ❌ / 📷 IG)",
+        7: "ช่องทางการติดต่อออนไลน์ (📘 FB / 🎵 TikTok	/💚 LINE / ❌ / 📷 IG) ",
         9: "หากมีการจัดกิจกรรมอะไรร่วมกัน outing/ นัดเจอ/ นัดเที่ยว/ พูดคุย/ เอารุ่นม่วนจอย คุณจะสะดวกมั้ย",
         10: "ต้องการให้มีเสื้อรุ่นสีอะไร",
       };
+
+      // Global variables to store data and current sort mode
+      let allValidRows = [];
+      let currentSortMode = "name"; // 'name', 'order', or 'update'
 
       // Better CSV parsing function
       function parseCSV(text) {
@@ -108,7 +135,7 @@
                   <p class="text-sm">Image not accessible</p>
                   <p class="text-xs mt-1">ID: ${imageId.substring(0, 12)}...</p>
                   <button onclick="window.open('https://drive.google.com/file/d/${imageId}/view', '_blank')" 
-                          class="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                          class="mt-2 px-2 py-1 bg-orange-400 hover:bg-orange-500 text-white text-xs rounded">
                     Open in Drive
                   </button>
                 </div>
@@ -145,6 +172,140 @@
         tryNextUrl();
       }
 
+      // Sort data based on current mode
+      function sortData(rows, mode) {
+        const sortedRows = [...rows]; // Create a copy
+
+        if (mode === "name") {
+          // Sort by name (column 2) in ascending order
+          sortedRows.sort((a, b) => {
+            const nameA = (a[2] || "").replace(/"/g, "").trim();
+            const nameB = (b[2] || "").replace(/"/g, "").trim();
+            return nameA.localeCompare(nameB, "th", { numeric: true });
+          });
+        } else if (mode === "order") {
+          // Sort by original order (column 1) - latest first (descending)
+          sortedRows.sort((a, b) => {
+            const orderA =
+              parseInt((a[1] || "0").replace(/"/g, "").trim()) || 0;
+            const orderB =
+              parseInt((b[1] || "0").replace(/"/g, "").trim()) || 0;
+            return orderA - orderB; // Descending order (latest first)
+          });
+        } else if (mode === "update") {
+          // Sort by latest update (reverse original row order - assuming newer entries are at the bottom)
+          // Keep the original index to maintain the "latest update" order
+          sortedRows.reverse(); // Reverse to show latest entries first
+        }
+
+        return sortedRows;
+      }
+
+      // Update button states
+      function updateButtonStates() {
+        const sortByNameBtn = document.getElementById("sortByName");
+        const sortByOrderBtn = document.getElementById("sortByOrder");
+        const sortByUpdateBtn = document.getElementById("sortByUpdate");
+
+        // Define classes
+        const inactiveClass =
+          "px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-sm";
+        const activeClass =
+          "px-4 py-2 bg-orange-400 hover:bg-orange-500 text-white hover:text-white rounded transition-all text-sm";
+
+        // Reset all buttons to inactive state
+        sortByNameBtn.className = inactiveClass;
+        sortByOrderBtn.className = inactiveClass;
+        sortByUpdateBtn.className = inactiveClass;
+
+        // Set active button
+        if (currentSortMode === "name") {
+          sortByNameBtn.className = activeClass;
+        } else if (currentSortMode === "order") {
+          sortByOrderBtn.className = activeClass;
+        } else if (currentSortMode === "update") {
+          sortByUpdateBtn.className = activeClass;
+        }
+      }
+
+      // Render gallery with sorted data
+      function renderGallery(rows) {
+        const gallery = document.getElementById("gallery");
+        gallery.innerHTML = ""; // Clear existing content
+
+        rows.forEach((cols, index) => {
+          console.log(`Row ${index}:`, cols);
+
+          const imageId = extractDriveId(cols[8]);
+          console.log("Extracted ID:", imageId);
+
+          if (!imageId) {
+            console.log(`Row ${index}: Could not extract image ID`);
+            return;
+          }
+
+          let extraData = "";
+          // Skip column 0 and column 8 (image), display others with Thai labels
+          for (let i = 1; i < cols.length; i++) {
+            if (i !== 8 && cols[i] && cols[i].trim()) {
+              const label = columnLabels[i] || `Column ${i}`;
+              const value = cols[i].replace(/"/g, "").trim();
+              extraData += `<div class="mb-2">
+                <p class="text-xs font-medium text-orange-500">${label}</p>
+                <p class="text-sm text-gray-800">${value}</p>
+              </div>`;
+            }
+          }
+
+          const cardDiv = document.createElement("div");
+          cardDiv.className =
+            "bg-white rounded-xl shadow-lg p-4 border-l-4 border-orange-400";
+
+          const imageContainer = document.createElement("div");
+          imageContainer.className = "relative mb-3";
+
+          const extraDataDiv = document.createElement("div");
+          extraDataDiv.innerHTML = extraData;
+
+          cardDiv.appendChild(imageContainer);
+          cardDiv.appendChild(extraDataDiv);
+          gallery.appendChild(cardDiv);
+
+          // Try to load image with multiple fallback URLs
+          createImageWithFallbacks(imageId, imageContainer);
+        });
+      }
+
+      // Event listeners for sort buttons
+      document.addEventListener("DOMContentLoaded", function () {
+        document
+          .getElementById("sortByName")
+          .addEventListener("click", function () {
+            currentSortMode = "name";
+            updateButtonStates();
+            const sortedRows = sortData(allValidRows, currentSortMode);
+            renderGallery(sortedRows);
+          });
+
+        document
+          .getElementById("sortByOrder")
+          .addEventListener("click", function () {
+            currentSortMode = "order";
+            updateButtonStates();
+            const sortedRows = sortData(allValidRows, currentSortMode);
+            renderGallery(sortedRows);
+          });
+
+        document
+          .getElementById("sortByUpdate")
+          .addEventListener("click", function () {
+            currentSortMode = "update";
+            updateButtonStates();
+            const sortedRows = sortData(allValidRows, currentSortMode);
+            renderGallery(sortedRows);
+          });
+      });
+
       fetch(sheetUrl)
         .then((res) => res.text())
         .then((csvText) => {
@@ -153,56 +314,15 @@
           const rows = parseCSV(csvText);
           console.log("Parsed rows:", rows);
 
-          const gallery = document.getElementById("gallery");
+          // Filter out rows without image data and store globally
+          allValidRows = rows.slice(1).filter((cols) => cols[8]); // Skip header and filter rows with images
 
-          // Skip header row
-          rows.slice(1).forEach((cols, index) => {
-            console.log(`Row ${index}:`, cols);
+          console.log("Valid rows:", allValidRows);
 
-            if (!cols[8]) {
-              console.log(`Row ${index}: No data in column 8`);
-              return;
-            }
-
-            console.log(`Row ${index} - Column 8:`, cols[8]);
-
-            const imageId = extractDriveId(cols[8]);
-            console.log("Extracted ID:", imageId);
-
-            if (!imageId) {
-              console.log(`Row ${index}: Could not extract image ID`);
-              return;
-            }
-
-            let extraData = "";
-            // Skip column 0 and column 8 (image), display others with Thai labels
-            for (let i = 1; i < cols.length; i++) {
-              if (i !== 8 && cols[i] && cols[i].trim()) {
-                const label = columnLabels[i] || `Column ${i}`;
-                const value = cols[i].replace(/"/g, "").trim();
-                extraData += `<div class="mb-2">
-                  <p class="text-xs text-gray-500 font-medium">${label}</p>
-                  <p class="text-sm text-gray-800">${value}</p>
-                </div>`;
-              }
-            }
-
-            const cardDiv = document.createElement("div");
-            cardDiv.className = "bg-white rounded-xl shadow p-4";
-
-            const imageContainer = document.createElement("div");
-            imageContainer.className = "relative mb-3";
-
-            const extraDataDiv = document.createElement("div");
-            extraDataDiv.innerHTML = extraData;
-
-            cardDiv.appendChild(imageContainer);
-            cardDiv.appendChild(extraDataDiv);
-            gallery.appendChild(cardDiv);
-
-            // Try to load image with multiple fallback URLs
-            createImageWithFallbacks(imageId, imageContainer);
-          });
+          // Initial render with name sorting
+          updateButtonStates();
+          const sortedRows = sortData(allValidRows, currentSortMode);
+          renderGallery(sortedRows);
         })
         .catch((err) => {
           console.error("Error fetching sheet:", err);
