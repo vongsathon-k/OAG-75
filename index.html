@@ -14,13 +14,13 @@
         id="sortByName"
         class="px-4 py-2 bg-orange-400 hover:bg-orange-500 text-white hover:text-white rounded transition-all text-sm"
       >
-        เรียงตามชื่อ (ก-ฮ)
+        เรียงตามชื่อเล่น (ก-ฮ)
       </button>
       <button
         id="sortByOrder"
         class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-sm"
       >
-        เรียงตามลำดับเลขที่นั้ง
+        เรียงตามลำดับที่นั้ง
       </button>
       <button
         id="sortByUpdate"
@@ -50,6 +50,7 @@
         7: "ช่องทางการติดต่อออนไลน์ (📘 FB / 🎵 TikTok	/💚 LINE / ❌ / 📷 IG) ",
         9: "หากมีการจัดกิจกรรมอะไรร่วมกัน outing/ นัดเจอ/ นัดเที่ยว/ พูดคุย/ เอารุ่นม่วนจอย คุณจะสะดวกมั้ย",
         10: "ต้องการให้มีเสื้อรุ่นสีอะไร",
+        11: "ชื่อเล่น",
       };
 
       // Global variables to store data and current sort mode
@@ -179,8 +180,8 @@
         if (mode === "name") {
           // Sort by name (column 2) in ascending order
           sortedRows.sort((a, b) => {
-            const nameA = (a[2] || "").replace(/"/g, "").trim();
-            const nameB = (b[2] || "").replace(/"/g, "").trim();
+            const nameA = (a[11] || "").replace(/"/g, "").trim();
+            const nameB = (b[11] || "").replace(/"/g, "").trim();
             return nameA.localeCompare(nameB, "th", { numeric: true });
           });
         } else if (mode === "order") {
@@ -193,9 +194,16 @@
             return orderA - orderB; // Descending order (latest first)
           });
         } else if (mode === "update") {
+          sortedRows.sort((a, b) => {
+            const updateA =
+              parseInt((a[0] || "0").replace(/"/g, "").trim()) || 0;
+            const updateB =
+              parseInt((b[0] || "0").replace(/"/g, "").trim()) || 0;
+            return updateB - updateA; // Descending order (latest first)
+          });
           // Sort by latest update (reverse original row order - assuming newer entries are at the bottom)
           // Keep the original index to maintain the "latest update" order
-          sortedRows.reverse(); // Reverse to show latest entries first
+          //   sortedRows.reverse(); // Reverse to show latest entries first
         }
 
         return sortedRows;
@@ -244,10 +252,13 @@
             return;
           }
 
+          // Get nickname from column 11
+          const nickname = cols[11] ? cols[11].replace(/"/g, "").trim() : "";
+
           let extraData = "";
-          // Skip column 0 and column 8 (image), display others with Thai labels
+          // Skip column 0, column 8 (image), and column 11 (nickname - shown on top), display others with Thai labels
           for (let i = 1; i < cols.length; i++) {
-            if (i !== 8 && cols[i] && cols[i].trim()) {
+            if (i !== 8 && i !== 11 && cols[i] && cols[i].trim()) {
               const label = columnLabels[i] || `Column ${i}`;
               const value = cols[i].replace(/"/g, "").trim();
               extraData += `<div class="mb-2">
@@ -261,12 +272,25 @@
           cardDiv.className =
             "bg-white rounded-xl shadow-lg p-4 border-l-4 border-orange-400";
 
+          const nicknameDiv = document.createElement("div");
+          if (nickname) {
+            nicknameDiv.innerHTML = `
+              <div class="mb-3 text-center">
+                <h3 class="text-lg font-bold text-orange-600 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+                  ${nickname}
+                </h3>
+              </div>
+            `;
+          }
+
           const imageContainer = document.createElement("div");
           imageContainer.className = "relative mb-3";
 
           const extraDataDiv = document.createElement("div");
           extraDataDiv.innerHTML = extraData;
 
+          // Add elements in order: nickname, image, other data
+          cardDiv.appendChild(nicknameDiv);
           cardDiv.appendChild(imageContainer);
           cardDiv.appendChild(extraDataDiv);
           gallery.appendChild(cardDiv);
