@@ -180,8 +180,8 @@
         if (mode === "name") {
           // Sort by name (column 2) in ascending order
           sortedRows.sort((a, b) => {
-            const nameA = (a[2] || "").replace(/"/g, "").trim();
-            const nameB = (b[2] || "").replace(/"/g, "").trim();
+            const nameA = (a[11] || "").replace(/"/g, "").trim();
+            const nameB = (b[11] || "").replace(/"/g, "").trim();
             return nameA.localeCompare(nameB, "th", { numeric: true });
           });
         } else if (mode === "order") {
@@ -191,12 +191,19 @@
               parseInt((a[1] || "0").replace(/"/g, "").trim()) || 0;
             const orderB =
               parseInt((b[1] || "0").replace(/"/g, "").trim()) || 0;
-            return orderB - orderA; // Descending order (latest first)
+            return orderA - orderB; // Descending order (latest first)
           });
         } else if (mode === "update") {
+          sortedRows.sort((a, b) => {
+            const updateA =
+              parseInt((a[0] || "0").replace(/"/g, "").trim()) || 0;
+            const updateB =
+              parseInt((b[0] || "0").replace(/"/g, "").trim()) || 0;
+            return updateB - updateA; // Descending order (latest first)
+          });
           // Sort by latest update (reverse original row order - assuming newer entries are at the bottom)
           // Keep the original index to maintain the "latest update" order
-          sortedRows.reverse(); // Reverse to show latest entries first
+          //   sortedRows.reverse(); // Reverse to show latest entries first
         }
 
         return sortedRows;
