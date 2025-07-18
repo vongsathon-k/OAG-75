@@ -254,13 +254,13 @@
         gallery.innerHTML = ""; // Clear existing content
 
         rows.forEach((cols, index) => {
-          console.log(`Row ${index}:`, cols);
+          
 
           const imageId = extractDriveId(cols[8]);
-          console.log("Extracted ID:", imageId);
+          
 
           if (!imageId) {
-            console.log(`Row ${index}: Could not extract image ID`);
+            // console.log(`Row ${index}: Could not extract image ID`);
             return;
           }
 
