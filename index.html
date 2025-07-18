@@ -64,7 +64,7 @@
         6: "เบอร์โทรศัพท์มือถือ",
         7: "ช่องทางการติดต่อออนไลน์ (📘 FB / 🎵 TikTok	/💚 LINE / ❌ / 📷 IG) ",
         9: "หากมีการจัดกิจกรรมอะไรร่วมกัน outing/ นัดเจอ/ นัดเที่ยว/ พูดคุย/ เอารุ่นม่วนจอย คุณจะสะดวกมั้ย",
-        10: "ต้องการให้มีเสื้อรุ่นสีอะไร",
+        10: "วันเกิด",
         11: "ชื่อเล่น",
       };
 
@@ -172,10 +172,7 @@
           };
 
           img.onerror = function () {
-            console.log(
-              `URL ${currentUrlIndex + 1} failed:`,
-              urls[currentUrlIndex]
-            );
+           
             currentUrlIndex++;
             container.innerHTML = ""; // Clear previous attempt
             tryNextUrl();
@@ -348,15 +345,14 @@
       fetch(sheetUrl)
         .then((res) => res.text())
         .then((csvText) => {
-          console.log("Raw CSV:", csvText);
+          
 
           const rows = parseCSV(csvText);
-          console.log("Parsed rows:", rows);
-
+          
           // Filter out rows without image data and store globally
           allValidRows = rows.slice(1).filter((cols) => cols[8]); // Skip header and filter rows with images
 
-          console.log("Valid rows:", allValidRows);
+         
 
           // Initial render with name sorting
           updateButtonStates();
@@ -364,7 +360,7 @@
           renderGallery(sortedRows);
         })
         .catch((err) => {
-          console.error("Error fetching sheet:", err);
+          
           document.getElementById(
             "gallery"
           ).innerHTML = `<div class="col-span-full text-center text-red-500">
